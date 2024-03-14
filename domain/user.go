@@ -11,6 +11,6 @@ type User struct {
 
 type SellerResponse struct {
 	Name             string         `json:"name"`
-	ProductSoldTotal int            `json:"productTotal"`
+	ProductSoldTotal int            `json:"productSoldTotal"`
 	BankAccounts     []BankAccounts `json:"bankAccount"`
 }

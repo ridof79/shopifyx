@@ -20,19 +20,21 @@ func CreateProduct(product *domain.Product, userId string) error {
 	return nil
 }
 
-func GetProductById(productId string) (domain.ProductResponse, domain.SellerResponse, error) {
-	var product domain.ProductResponse
+func GetProductById(productId string) (domain.Product, domain.SellerResponse, error) {
+	var product domain.Product
 	var seller domain.SellerResponse
 	var totalSold int
 
-	var bankAccountId []sql.NullString
-	var bankNames []sql.NullString
-	var bankAccountNames []sql.NullString
-	var bankAccountNumbers []sql.NullString
+	sellerId, _ := GetUserIdFromProductId(productId)
+	_ = config.GetDB().QueryRow("SELECT COALESCE(SUM(pc.quantity), 0) AS product_purchase_count FROM payments_counter pc WHERE pc.seller_id = $1", sellerId).Scan(&totalSold)
+
+	var arrBankAccountId []sql.NullString
+	var arrBankNames []sql.NullString
+	var arrBankAccountNames []sql.NullString
+	var arrBankAccountNumbers []sql.NullString
 
 	query := `
 	SELECT 
-		p.id AS product_id,
 		p.name AS product_name,
 		p.price AS product_price,
 		p.image_url AS product_image_url,
@@ -40,39 +42,47 @@ func GetProductById(productId string) (domain.ProductResponse, domain.SellerResp
 		p.condition AS product_condition,
 		p.tags AS product_tags,
 		p.is_purchaseable AS product_purchaseable,
-		COALESCE(SUM(pc.quantity), 0) AS purchase_count,
+		COALESCE(SUM(pc.quantity), 0) AS product_purchase_count, 
 		u.name AS seller_name,
-		ARRAY_AGG(ba.id) AS bank_account_id,
-		ARRAY_AGG(ba.bank_name) AS bank_names,
-		ARRAY_AGG(ba.bank_account_name) AS bank_account_names,
-		ARRAY_AGG(ba.bank_account_number) AS bank_account_numbers,
-			(SELECT COALESCE(SUM(pc.quantity), 0) 
-			FROM payments_counter pc 
-			JOIN payments py ON pc.payment_id = py.id
-			WHERE py.user_id = u.id) AS product_sold_total
+		(
+			SELECT ARRAY_AGG(ba.id) 
+			FROM bank_accounts ba 
+			WHERE ba.user_id = u.id
+		) AS bank_account_id,
+		(
+			SELECT ARRAY_AGG(ba.bank_name) 
+			FROM bank_accounts ba 
+			WHERE ba.user_id = u.id
+		) AS bank_names,
+		(
+			SELECT ARRAY_AGG(ba.bank_account_name) 
+			FROM bank_accounts ba 
+			WHERE ba.user_id = u.id
+		) AS bank_account_names,
+		(
+			SELECT ARRAY_AGG(ba.bank_account_number) 
+			FROM bank_accounts ba 
+			WHERE ba.user_id = u.id
+		) AS bank_account_numbers
 	FROM 
 		products p
-	JOIN 
-		users u ON p.user_id = u.id
 	LEFT JOIN 
-		bank_accounts ba ON u.id = ba.user_id
+		users u ON p.user_id = u.id
 	LEFT JOIN 
 		payments_counter pc ON p.id = pc.product_id
 	WHERE 
 		p.id = $1
 	GROUP BY 
-		p.id, p.name, u.name;
+		p.id, p.name, u.name, u.id;`
 
-	`
 	rows, err := config.GetDB().Query(query, productId)
 	if err != nil {
-		return domain.ProductResponse{}, domain.SellerResponse{}, err
+		return domain.Product{}, domain.SellerResponse{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		err := rows.Scan(
-			&product.Id,
 			&product.Name,
 			&product.Price,
 			&product.ImageURL,
@@ -82,26 +92,27 @@ func GetProductById(productId string) (domain.ProductResponse, domain.SellerResp
 			&product.IsPurchaseable,
 			&product.PurchaseCount,
 			&seller.Name,
-			pq.Array(&bankAccountId),
-			pq.Array(&bankNames),
-			pq.Array(&bankAccountNames),
-			pq.Array(&bankAccountNumbers),
-			&totalSold,
+			pq.Array(&arrBankAccountId),
+			pq.Array(&arrBankNames),
+			pq.Array(&arrBankAccountNames),
+			pq.Array(&arrBankAccountNumbers),
 		)
 		if err != nil {
-			return domain.ProductResponse{}, domain.SellerResponse{}, err
+			return domain.Product{}, domain.SellerResponse{}, err
 		}
 	}
 
 	var bankAccounts []domain.BankAccounts
-	for i := range bankAccountId {
+
+	for i := range arrBankAccountId {
 		bankAccounts = append(bankAccounts, domain.BankAccounts{
-			Id:                bankAccountId[i].String,
-			BankName:          bankNames[i].String,
-			BankAccountName:   bankAccountNames[i].String,
-			BankAccountNumber: bankAccountNumbers[i].String,
+			Id:                arrBankAccountId[i].String,
+			BankName:          arrBankNames[i].String,
+			BankAccountName:   arrBankAccountNames[i].String,
+			BankAccountNumber: arrBankAccountNumbers[i].String,
 		})
 	}
+
 	seller.BankAccounts = bankAccounts
 	seller.ProductSoldTotal = totalSold
 

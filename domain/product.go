@@ -8,7 +8,6 @@ const (
 )
 
 type Product struct {
-	Id             string        `json:"id"`
 	Name           string        `json:"name"`
 	Price          int           `json:"price"`
 	ImageURL       string        `json:"imageUrl"`
@@ -16,7 +15,7 @@ type Product struct {
 	Condition      ConditionEnum `json:"condition"`
 	Tags           []string      `json:"tags"`
 	IsPurchaseable bool          `json:"isPurchaseable"`
-	UserId         string        `json:"userId"`
+	PurchaseCount  int           `json:"purchaseCount"`
 }
 
 type ProductResponse struct {

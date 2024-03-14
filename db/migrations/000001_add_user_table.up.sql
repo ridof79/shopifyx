@@ -66,4 +66,4 @@ CREATE TABLE payments_counter (
 );
 
 CREATE INDEX idx_payments_counter_product_id ON payments_counter (product_id);
-CREATE INDEX idx_payments_counter_payment_id ON payments_counter (payment_id);
+CREATE INDEX idx_payments_counter_seller_id ON payments_counter (seller_id);
