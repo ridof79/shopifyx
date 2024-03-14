@@ -104,32 +104,46 @@ func UpdateBankAccountHandler(c echo.Context) error {
 		)
 	}
 
-	err := repository.UpdateBankAccount(&updatedBankAccount, bankAccountId, userId)
+	result, err := repository.UpdateBankAccount(&updatedBankAccount, bankAccountId, userId)
+
+	switch result {
+	case 1:
+		return c.JSON(
+			http.StatusOK,
+			map[string]interface{}{
+				"message": "account updated successfully",
+			})
+	case 2:
+		return c.JSON(
+			http.StatusNotFound,
+			map[string]string{
+				"error": "bank account not found",
+			},
+		)
+	case 3:
+		return c.JSON(
+			http.StatusForbidden,
+			map[string]string{
+				"error": "you don't have permission to delete this account",
+			},
+		)
+	}
 
 	if err != nil {
-		if repository.IdNotFound(err) {
-			return c.JSON(
-				http.StatusNotFound,
-				map[string]string{
-					"error": "bank account not found",
-				},
-			)
-		}
-
-		if repository.DontHavePermission(err) {
-			return c.JSON(
-				http.StatusForbidden,
-				map[string]string{
-					"error": "you don't have permission to delete this account",
-				},
-			)
-		}
-
 		if repository.IsConstrainViolations(err) {
 			return c.JSON(
 				http.StatusBadRequest,
 				map[string]string{
 					"error": "required fields are missing or invalid",
+				},
+			)
+		}
+
+		if repository.IdNotFound(err) {
+			return c.JSON(
+				http.StatusNotFound,
+				map[string]string{
+					"error": "bank account not found",
 				},
 			)
 		}
@@ -140,12 +154,7 @@ func UpdateBankAccountHandler(c echo.Context) error {
 				"message": err,
 			})
 	}
-
-	return c.JSON(
-		http.StatusOK,
-		map[string]interface{}{
-			"message": "account updated successfully",
-		})
+	return nil
 }
 
 func DeleteBankAccountHandler(c echo.Context) error {

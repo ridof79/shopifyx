@@ -9,16 +9,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecretKey string
-
-func init() {
-	jwtSecretKey = os.Getenv("JWT_SECRET_KEY")
-}
-
-func GetJWTSecret() string {
-	return jwtSecretKey
-}
-
 type JwtCustomClaims struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
@@ -27,7 +17,10 @@ type JwtCustomClaims struct {
 
 func GenerateAccessToken(user *domain.User) (string, error) {
 
-	var tokenExpirationTime, err = strconv.Atoi(os.Getenv("JWT_EXPIRED_MINUTES"))
+	var jwtSecretKey = os.Getenv("JWT_SECRET")
+	var jwtExpiredMinutes = os.Getenv("JWT_EXPIRED_MINUTES")
+
+	var tokenExpirationTime, err = strconv.Atoi(jwtExpiredMinutes)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +35,7 @@ func GenerateAccessToken(user *domain.User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	t, err := token.SignedString([]byte("secret"))
+	t, err := token.SignedString([]byte(jwtSecretKey))
 	if err != nil {
 		return t, err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"shopifyx/auth"
 	"shopifyx/config"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -32,21 +34,29 @@ func main() {
 	e := echo.New()
 
 	// Custom logger
-	// Configure Echo to use LogrusAdapter
+	e.Use(echoprometheus.NewMiddleware("myapp"))   // adds middleware to gather metrics
+	e.GET("/metrics", echoprometheus.NewHandler()) // adds route to serve gathered metrics
 
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.Use(echojwt.WithConfig(echojwt.Config{
-		SigningKey: []byte(os.Getenv("JWT_SECRET")),
-		Skipper: func(c echo.Context) bool {
-			return strings.HasPrefix(c.Path(), "/v1/user/")
-		},
-		NewClaimsFunc: func(c echo.Context) jwt.Claims {
-			return new(auth.JwtCustomClaims)
-		},
-	}))
+	e.Use(echojwt.WithConfig(
+		echojwt.Config{
+			SigningKey: []byte(os.Getenv("JWT_SECRET")),
+			Skipper: func(c echo.Context) bool {
+				return strings.HasPrefix(c.Path(), "/v1/user/") || strings.HasPrefix(c.Path(), "/metrics")
+			},
+			NewClaimsFunc: func(c echo.Context) jwt.Claims {
+				return new(auth.JwtCustomClaims)
+			},
+			ErrorHandler: func(c echo.Context, err error) error {
+				if err == echojwt.ErrJWTMissing {
+					return echo.NewHTTPError(http.StatusForbidden, "you dont have access")
+				}
+				return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized1")
+			},
+		}))
 
 	//auth
 	e.POST("/v1/user/register", delivery.RegisterUserHandler)

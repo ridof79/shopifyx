@@ -16,7 +16,6 @@ func AddBankAccount(bankAccount *domain.BankAccount, userId string) error {
 		return err
 	}
 	return err
-
 }
 
 func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
@@ -41,23 +40,30 @@ func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
 	return bankAccounts, nil
 }
 
-func UpdateBankAccount(bankAccount *domain.BankAccount, bankAccountId, userId string) error {
+func UpdateBankAccount(bankAccount *domain.BankAccount, bankAccountId, userId string) (int, error) {
 	query := `
+	WITH updated AS (
 		UPDATE bank_accounts
 		SET bank_name = $1, bank_account_name = $2, bank_account_number = $3
 		WHERE id = $4 AND user_id = $5
-		RETURNING id
-	`
+		RETURNING *
+	)
+	SELECT 
+		CASE 
+			WHEN EXISTS (SELECT 1 FROM updated) THEN 1 
+			WHEN NOT EXISTS (SELECT 1 FROM bank_accounts WHERE id = $4) THEN 2 
+			ELSE 3 
+		END AS result_code;`
 
-	var updatedBankAccountId string
+	var resultCode int
 	err := config.GetDB().QueryRow(query,
 		bankAccount.BankName, bankAccount.BankAccountName, bankAccount.BankAccountNumber, bankAccountId, userId,
-	).Scan(&updatedBankAccountId)
+	).Scan(&resultCode)
 
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return err
+	return resultCode, err
 }
 
 func DeleteBankAccount(bankAccountId, userId string) error {

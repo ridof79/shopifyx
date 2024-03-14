@@ -55,13 +55,14 @@ CREATE TABLE payments (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     bank_account_id UUID NOT NULL REFERENCES bank_accounts(id),
     payment_proof_image_url TEXT NOT NULL CHECK (payment_proof_image_url ~* '^https?://'),
-    user_id UUID NOT NULL REFERENCES users(id)
+    buyer_id UUID NOT NULL REFERENCES users(id)
 );
 
 CREATE TABLE payments_counter (
     product_id UUID NOT NULL REFERENCES products(id),
     quantity INTEGER NOT NULL CHECK (quantity >= 1),
-    payment_id UUID NOT NULL REFERENCES payments(id)
+    payment_id UUID NOT NULL REFERENCES payments(id),
+    seller_id UUID NOT NULL REFERENCES users(id)
 );
 
 CREATE INDEX idx_payments_counter_product_id ON payments_counter (product_id);

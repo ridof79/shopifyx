@@ -66,7 +66,6 @@ func UploadImageHandler(c echo.Context) error {
 	defer fileContent.Close()
 
 	// create AWS session
-
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccesKeyId, awsSecretAccessKey, "")),
 		config.WithRegion(awsRegion),

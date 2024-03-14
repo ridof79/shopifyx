@@ -1,5 +1,7 @@
 package domain
 
+import _ "database/sql"
+
 type User struct {
 	Id       string `json:"id"`
 	Username string `json:"username"`
@@ -8,8 +10,7 @@ type User struct {
 }
 
 type SellerResponse struct {
-	Name          string         `json:"name"`
-	ProductTotal  int            `json:"productTotal"`
-	PurchaseTotal int            `json:"purchaseTotal"`
-	BankAccounts  []BankAccounts `json:"bankAccount"`
+	Name             string         `json:"name"`
+	ProductSoldTotal int            `json:"productTotal"`
+	BankAccounts     []BankAccounts `json:"bankAccount"`
 }

@@ -12,6 +12,7 @@ import (
 )
 
 func CreateProductHandler(c echo.Context) error {
+
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*auth.JwtCustomClaims)
 	userId := claims.Id
@@ -71,7 +72,28 @@ func UpdateProductHandler(c echo.Context) error {
 		)
 	}
 
-	err := repository.UpdateProduct(&updatedProduct, userId, productID)
+	result, err := repository.UpdateProduct(&updatedProduct, productID, userId)
+
+	switch result {
+	case 1:
+		return c.JSON(
+			http.StatusOK,
+			map[string]interface{}{
+				"message": "Product updated successfully!",
+			})
+	case 2:
+		return c.JSON(
+			http.StatusNotFound,
+			map[string]string{
+				"error": "product not found",
+			})
+	case 3:
+		return c.JSON(
+			http.StatusForbidden,
+			map[string]string{
+				"error": "you don't have permission to update this product",
+			})
+	}
 
 	if err != nil {
 		if repository.IsConstrainViolations(err) {
@@ -92,27 +114,14 @@ func UpdateProductHandler(c echo.Context) error {
 			)
 		}
 
-		if repository.DontHavePermission(err) {
-			return c.JSON(
-				http.StatusForbidden,
-				map[string]string{
-					"error": "you don't have permission to update this product",
-				},
-			)
-		}
-
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
-				"message": err.Error(),
+				"message": err,
 			})
 	}
 
-	return c.JSON(
-		http.StatusOK,
-		map[string]interface{}{
-			"message": "Product updated successfully!",
-		})
+	return nil
 }
 
 func DeleteProductHandler(c echo.Context) error {
@@ -122,7 +131,29 @@ func DeleteProductHandler(c echo.Context) error {
 
 	productID := c.Param("productId")
 
-	err := repository.DeleteProductById(productID, userId)
+	result, err := repository.DeleteProductById(productID, userId)
+
+	switch result {
+	case 1:
+		return c.JSON(
+			http.StatusOK,
+			map[string]interface{}{
+				"message": "product deleted successfully!",
+			})
+
+	case 2:
+		return c.JSON(
+			http.StatusNotFound,
+			map[string]interface{}{
+				"message": "product not found",
+			})
+	case 3:
+		return c.JSON(
+			http.StatusForbidden,
+			map[string]interface{}{
+				"message": "you don't have permission to delete this product",
+			})
+	}
 
 	if err != nil {
 		if repository.IdNotFound(err) {
@@ -134,27 +165,13 @@ func DeleteProductHandler(c echo.Context) error {
 			)
 		}
 
-		if repository.DontHavePermission(err) {
-			return c.JSON(
-				http.StatusForbidden,
-				map[string]string{
-					"error": "you don't have permission to delete this product",
-				},
-			)
-		}
-
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
 				"message": err.Error(),
 			})
 	}
-
-	return c.JSON(
-		http.StatusOK,
-		map[string]interface{}{
-			"message": "product deleted successfully!",
-		})
+	return nil
 }
 
 func GetProductHandler(c echo.Context) error {

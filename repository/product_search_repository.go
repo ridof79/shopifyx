@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 	"shopifyx/config"
 	"shopifyx/domain"
@@ -14,8 +13,10 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 
 	query := `
 		SELECT p.id, p.name, p.price, p.image_url, p.stock, p.condition, p.tags, p.is_purchaseable, p.created_at as date,
+		
 		COALESCE((SELECT SUM(pc.quantity) 
 		FROM payments_counter pc WHERE pc.product_id = p.id), 0) AS total_sold
+
 		FROM products p
 		WHERE 1 = 1
 	`
@@ -102,7 +103,7 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 	}
 
 	if len(products) == 0 {
-		return nil, 0, errors.New(query)
+		return nil, 0, nil
 	}
 
 	return products, total, nil

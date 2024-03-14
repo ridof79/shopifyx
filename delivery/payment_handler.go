@@ -15,7 +15,7 @@ import (
 func CreatePaymentHandler(c echo.Context) error {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	buyerId := claims.Id
 
 	var payment domain.Payment
 	productId := c.Param("productId")
@@ -34,29 +34,45 @@ func CreatePaymentHandler(c echo.Context) error {
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
-				"message": err,
+				"message": err.Error(),
 			})
 	}
 	defer tx.Rollback()
 
-	if err := repository.CreatePayment(tx, &payment, productId, userId); err != nil {
+	// bank account id user == product id user
+	// get user id dari product id
+	validBankId, sellerId, _ := repository.ProductAndBankAccountValid(tx, payment.BankAccountId, productId)
+	if !validBankId {
+		tx.Rollback()
+		return c.JSON(
+			http.StatusBadRequest,
+			map[string]string{
+				"message": "payment details invalid",
+			},
+		)
+	}
+
+	if err := repository.CreatePayment(tx, &payment, productId, buyerId, sellerId); err != nil {
+		tx.Rollback()
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
-				"message": err,
+				"message": err.Error(),
 			})
 	}
 
 	productStock, err := repository.GetProductStockTx(tx, productId)
 	if err != nil {
+		tx.Rollback()
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
-				"message": err,
+				"message": err.Error(),
 			})
 	}
 
 	if productStock < payment.Quantity {
+		tx.Rollback()
 		return c.JSON(
 			http.StatusBadRequest,
 			map[string]string{
@@ -66,6 +82,7 @@ func CreatePaymentHandler(c echo.Context) error {
 	}
 
 	if err := repository.UpdateProductStockTx(tx, productId, productStock-payment.Quantity); err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -73,7 +90,7 @@ func CreatePaymentHandler(c echo.Context) error {
 		return c.JSON(
 			http.StatusInternalServerError,
 			map[string]interface{}{
-				"message": err,
+				"message": err.Error(),
 			})
 	}
 
