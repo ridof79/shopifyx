@@ -9,16 +9,17 @@ import (
 	"shopifyx/repository"
 	"shopifyx/util"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
 func SearchProductHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
-
+	var userId string
 	userOnly, _ := strconv.ParseBool(c.QueryParam("userOnly"))
+
+	if userOnly {
+		userId = auth.GetUserIdFromHeader(c)
+	}
+
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	offset, _ := strconv.Atoi(c.QueryParam("offset"))
 	tags := []string{c.QueryParam("tags")}

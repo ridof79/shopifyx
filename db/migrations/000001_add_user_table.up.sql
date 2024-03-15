@@ -1,9 +1,3 @@
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS bank_accounts CASCADE;
-DROP TABLE IF EXISTS payments CASCADE;
-DROP TABLE IF EXISTS payments_counter CASCADE;
-
 -- Create the extension for UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

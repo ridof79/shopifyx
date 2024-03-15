@@ -51,9 +51,6 @@ func GenerateAccessToken(user *domain.User) (string, error) {
 func ConfigJWT() echojwt.Config {
 	return echojwt.Config{
 		SigningKey: []byte(os.Getenv("JWT_SECRET")),
-		Skipper: func(c echo.Context) bool {
-			return strings.HasPrefix(c.Path(), "/v1/user/") || strings.HasPrefix(c.Path(), "/metrics")
-		},
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(JwtCustomClaims)
 		},
@@ -64,6 +61,16 @@ func ConfigJWT() echojwt.Config {
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized1")
 		},
 	}
+}
+
+func GetUserIdFromHeader(c echo.Context) string {
+	authHeader := c.Request().Header.Get("Authorization")
+	tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
+	token, _ := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return os.Getenv("JWT_SECRET"), nil
+	})
+	claims, _ := token.Claims.(*JwtCustomClaims)
+	return claims.Id
 }
 
 func HashPassword(password string) (string, error) {

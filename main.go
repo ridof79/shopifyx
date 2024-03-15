@@ -7,13 +7,13 @@ import (
 
 	"log"
 
-	prometheus "shopifyx/middleware"
+	//prometheus "shopifyx/middleware"
 
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -30,56 +30,43 @@ func main() {
 	// Inisialisasi Echo framework
 	e := echo.New()
 
-	// Custom logger
-	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
+	// prometheus
+	e.Use(echoprometheus.NewMiddleware("myapp"))   // adds middleware to gather metrics
+	e.GET("/metrics", echoprometheus.NewHandler()) // adds route to serve gathered metrics
 
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(echojwt.WithConfig(auth.ConfigJWT()))
+	//	e.User(Prome)
 
-	//auth
-	//e.POST("/v1/user/register", delivery.RegisterUserHandler)
-	prometheus.NewRoute(e, "/v1/user/register", "POST", delivery.RegisterUserHandler)
+	// Whitelist routes
+	e.POST("/v1/user/register", delivery.RegisterUserHandler)
+	e.POST("/v1/user/login", delivery.LoginUserHandler)
+	e.GET("/v1/product", delivery.SearchProductHandler)
+	e.GET("/v1/product/:productId", delivery.GetProductHandler)
 
-	//e.POST("/v1/user/login", delivery.LoginUserHandler)
-	prometheus.NewRoute(e, "/v1/user/login", "POST", delivery.LoginUserHandler)
+	// Protected routes
+	v1 := e.Group("/v1")
+	v1.Use(echojwt.WithConfig(auth.ConfigJWT()))
 
-	//product
-	//e.POST("/v1/product", delivery.CreateProductHandler)
-	prometheus.NewRoute(e, "/v1/product", "POST", delivery.CreateProductHandler)
-	//e.PATCH("/v1/product/:productId", delivery.UpdateProductHandler)
-	prometheus.NewRoute(e, "/v1/product/:productId", "PATCH", delivery.UpdateProductHandler)
-	//e.DELETE("/v1/product/:productId", delivery.DeleteProductHandler)
-	prometheus.NewRoute(e, "/v1/product/:productId", "DELETE", delivery.DeleteProductHandler)
+	// Product routes
+	product := v1.Group("/product")
+	product.POST("", delivery.CreateProductHandler)
+	product.PATCH("/:productId", delivery.UpdateProductHandler)
+	product.DELETE("/:productId", delivery.DeleteProductHandler)
+	product.POST("/:productId/stock", delivery.UpdateProductStockHandler)
 
-	//stock managemenet
-	//e.POST("/v1/product/:productId/stock", delivery.UpdateProductStockHandler)
-	prometheus.NewRoute(e, "/v1/product/:productId/stock", "POST", delivery.UpdateProductStockHandler)
+	// Bank account routes
+	bank := v1.Group("/bank")
+	bank.POST("/account", delivery.AddBankAccountHandler)
+	bank.GET("/account", delivery.GetBankAccountsHandler)
+	bank.PATCH("/account/:bankAccountId", delivery.UpdateBankAccountHandler)
 
-	//bank account
-	//e.POST("/v1/bank/account", delivery.AddBankAccountHandler)
-	prometheus.NewRoute(e, "/v1/bank/account", "POST", delivery.AddBankAccountHandler)
-	//e.GET("/v1/bank/account", delivery.GetBankAccountsHandler)
-	prometheus.NewRoute(e, "/v1/bank/account", "GET", delivery.GetBankAccountsHandler)
-	//e.PATCH("/v1/bank/account/:bankAccountId", delivery.UpdateBankAccountHandler)
-	prometheus.NewRoute(e, "/v1/bank/account/:bankAccountId", "PATCH", delivery.UpdateBankAccountHandler)
+	// Payment route
+	v1.POST("/product/:productId/buy", delivery.CreatePaymentHandler)
 
-	//payment
-	//e.POST("/v1/product/:productId/buy", delivery.CreatePaymentHandler)
-	prometheus.NewRoute(e, "/v1/product/:productId/buy", "POST", delivery.CreatePaymentHandler)
-
-	//seach
-	//e.GET("/v1/product", delivery.SearchProductHandler)
-	prometheus.NewRoute(e, "/v1/product", "GET", delivery.SearchProductHandler)
-
-	//get product
-	//e.GET("/v1/product/:productId", delivery.GetProductHandler)
-	prometheus.NewRoute(e, "/v1/product/:productId", "GET", delivery.GetProductHandler)
-
-	//image upload
-	//e.POST("/v1/image", delivery.UploadImageHandler)
-	prometheus.NewRoute(e, "/v1/image", "POST", delivery.UploadImageHandler)
+	// Image upload route
+	v1.POST("/image", delivery.UploadImageHandler)
 
 	e.Logger.Fatal(e.Start(":8000"))
 }

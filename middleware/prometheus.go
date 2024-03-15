@@ -18,8 +18,8 @@ var (
 	}, []string{"path", "method", "status"})
 )
 
-func NewRoute(c *echo.Echo, path string, method string, handler echo.HandlerFunc) {
-	c.Add(method, path, wrapHandlerWithMetrics(path, method, handler))
+func NewRoute(c *echo.Echo, route *echo.Route, handler echo.HandlerFunc) {
+	c.Add(route.Method, route.Path, wrapHandlerWithMetrics(route.Path, route.Method, handler))
 }
 
 func wrapHandlerWithMetrics(path string, method string, handler echo.HandlerFunc) echo.HandlerFunc {
