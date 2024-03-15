@@ -74,13 +74,13 @@ func GetProductById(productId string) (domain.ProductResponse, domain.SellerResp
 	LEFT JOIN 
 		users u ON p.user_id = u.id
 	LEFT JOIN
-		total_product_sold tps ON p.id = tps.product_id;
+		total_product_sold tps ON p.id = tps.product_id
 	LEFT JOIN
-		total_users_sold sls ON u.id = sls.seller_id
+		total_users_sold sls ON u.id = sls.user_id
 	WHERE 
 		p.id = $1
 	GROUP BY 
-		p.id, p.name, u.name, u.id;`
+		p.id, p.name, u.name, u.id, sls.total_sold, tps.total_sold;`
 
 	rows, err := config.GetDB().Query(query, productId)
 	if err != nil {

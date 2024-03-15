@@ -78,6 +78,7 @@ SELECT
     p.id AS product_id,
     u.id AS seller_id,
     ba.id AS bank_account_id,
+    p.stock AS stock,
     p.is_purchaseable 
 FROM products p
 JOIN users u ON p.user_id = u.id

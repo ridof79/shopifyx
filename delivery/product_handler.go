@@ -119,7 +119,7 @@ func GetProductHandler(c echo.Context) error {
 			return util.ErrorHandler(c, http.StatusNotFound, ProductNotFound)
 		}
 
-		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToFetchProduct)
+		return util.ErrorHandler(c, http.StatusInternalServerError, err.Error())
 	}
 	return util.GetProductResponseHandler(c, http.StatusOK, product, seller)
 }
