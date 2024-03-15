@@ -8,7 +8,6 @@ import (
 	"shopifyx/repository"
 	"shopifyx/util"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,16 +20,14 @@ const (
 
 	ProductAddedSuccessfully   = "product added successfully!"
 	ProductUpdatedSuccessfully = "product updated successfully!"
-	ProductNotFound            = "product not found"
-
 	ProductDeletedSuccessfully = "product deleted successfully!"
+	StockUpdatedSuccessfully   = "stock updated successfully"
+
+	ProductNotFound = "product not found"
 )
 
 func CreateProductHandler(c echo.Context) error {
-
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	var product domain.Product
 
@@ -51,9 +48,7 @@ func CreateProductHandler(c echo.Context) error {
 }
 
 func UpdateProductHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	productID := c.Param("productId")
 
@@ -89,9 +84,7 @@ func UpdateProductHandler(c echo.Context) error {
 }
 
 func DeleteProductHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	productID := c.Param("productId")
 
@@ -140,10 +133,7 @@ func GetProductHandler(c echo.Context) error {
 }
 
 func UpdateProductStockHandler(c echo.Context) error {
-
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	productId := c.Param("productId")
 	userIdFromProductId, err := repository.GetUserIdFromProductId(productId)
@@ -170,5 +160,5 @@ func UpdateProductStockHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToUpdateStock)
 	}
 
-	return util.ResponseHandler(c, http.StatusOK, "stock updated successfully")
+	return util.ResponseHandler(c, http.StatusOK, StockUpdatedSuccessfully)
 }

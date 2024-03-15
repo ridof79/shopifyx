@@ -8,7 +8,6 @@ import (
 	"shopifyx/repository"
 	"shopifyx/util"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -28,10 +27,7 @@ const (
 )
 
 func AddBankAccountHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
-
+	userId := auth.GetUserIdFromToken(c)
 	var bankAccount domain.BankAccount
 
 	if err := json.NewDecoder(c.Request().Body).Decode(&bankAccount); err != nil {
@@ -50,10 +46,7 @@ func AddBankAccountHandler(c echo.Context) error {
 }
 
 func GetBankAccountsHandler(c echo.Context) error {
-
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	bankAccounts, err := repository.GetBankAccounts(userId)
 	if err != nil {
@@ -80,9 +73,7 @@ func GetBankAccountsHandler(c echo.Context) error {
 }
 
 func UpdateBankAccountHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	bankAccountId := c.Param("bankAccountId")
 
@@ -117,9 +108,7 @@ func UpdateBankAccountHandler(c echo.Context) error {
 }
 
 func DeleteBankAccountHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	userId := claims.Id
+	userId := auth.GetUserIdFromToken(c)
 
 	bankAccountId := c.Param("bankAccountId")
 

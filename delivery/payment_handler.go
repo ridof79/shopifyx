@@ -9,7 +9,6 @@ import (
 	"shopifyx/repository"
 	"shopifyx/util"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,9 +21,7 @@ const (
 )
 
 func CreatePaymentHandler(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*auth.JwtCustomClaims)
-	buyerId := claims.Id
+	buyerId := auth.GetUserIdFromToken(c)
 
 	var payment domain.Payment
 	productId := c.Param("productId")
@@ -33,7 +30,7 @@ func CreatePaymentHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
 	}
 
-	tx, err := config.GetDB().Begin()
+	tx, _ := config.GetDB().Begin()
 	defer tx.Rollback()
 
 	validBankId, sellerId, _ := repository.ProductAndBankAccountValid(tx, payment.BankAccountId, productId)
