@@ -1,22 +1,29 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"os"
 	"shopifyx/auth"
 	"shopifyx/config"
 	"shopifyx/delivery"
-
-	"strings"
+	"time"
 
 	"log"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	requestHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "shopifyx_request",
+		Help:    "Histogram of the /shopifyx request duration.",
+		Buckets: prometheus.LinearBuckets(1, 1, 10), // Adjust bucket sizes as needed
+	}, []string{"path", "method", "status"})
 )
 
 func main() {
@@ -34,33 +41,18 @@ func main() {
 	e := echo.New()
 
 	// Custom logger
-	e.Use(echoprometheus.NewMiddleware("myapp"))   // adds middleware to gather metrics
-	e.GET("/metrics", echoprometheus.NewHandler()) // adds route to serve gathered metrics
+	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 
 	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 
-	e.Use(echojwt.WithConfig(
-		echojwt.Config{
-			SigningKey: []byte(os.Getenv("JWT_SECRET")),
-			Skipper: func(c echo.Context) bool {
-				return strings.HasPrefix(c.Path(), "/v1/user/") || strings.HasPrefix(c.Path(), "/metrics")
-			},
-			NewClaimsFunc: func(c echo.Context) jwt.Claims {
-				return new(auth.JwtCustomClaims)
-			},
-			ErrorHandler: func(c echo.Context, err error) error {
-				if err == echojwt.ErrJWTMissing {
-					return echo.NewHTTPError(http.StatusForbidden, "you dont have access")
-				}
-				return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized1")
-			},
-		}))
+	e.Use(echojwt.WithConfig(auth.ConfigJWT()))
 
 	//auth
-	e.POST("/v1/user/register", delivery.RegisterUserHandler)
-	e.POST("/v1/user/login", delivery.LoginUserHandler)
+	//e.POST("/v1/user/register", delivery.RegisterUserHandler)
+	NewRoute(e, "/v1/user/register", "POST", delivery.RegisterUserHandler)
+
+	//e.POST("/v1/user/login", delivery.LoginUserHandler)
+	NewRoute(e, "/v1/user/login", "POST", delivery.LoginUserHandler)
 
 	//product
 	e.POST("/v1/product", delivery.CreateProductHandler)
@@ -79,13 +71,42 @@ func main() {
 	e.POST("/v1/product/:productId/buy", delivery.CreatePaymentHandler)
 
 	//seach
-	e.GET("/v1/product", delivery.SearchProductHandler)
+	//e.GET("/v1/product", delivery.SearchProductHandler)
+	NewRoute(e, "/v1/product", "GET", delivery.SearchProductHandler)
 
 	//get product
-	e.GET("/v1/product/:productId", delivery.GetProductHandler)
+	//e.GET("/v1/product/:productId", delivery.GetProductHandler)
+	NewRoute(e, "/v1/product/:productId", "GET", delivery.GetProductHandler)
 
 	//image upload
 	e.POST("/v1/image", delivery.UploadImageHandler)
 
 	e.Logger.Fatal(e.Start(":8000"))
+}
+
+func NewRoute(c *echo.Echo, path string, method string, handler echo.HandlerFunc) {
+	c.Add(method, path, wrapHandlerWithMetrics(path, method, handler))
+}
+
+func wrapHandlerWithMetrics(path string, method string, handler echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		startTime := time.Now()
+
+		// Execute the actual handler and catch any errors
+		err := handler(c)
+
+		// Regardless of whether an error occurred, record the metrics
+		duration := time.Since(startTime).Seconds()
+		statusCode := fmt.Sprintf("%d", c.Response().Status)
+
+		if err != nil {
+			if c.Response().Status == http.StatusOK { // Default status code
+				c.Response().Status = http.StatusInternalServerError // Assume internal server error if not set
+			}
+			c.String(http.StatusInternalServerError, err.Error()) // Ensure the response reflects the error
+		}
+
+		requestHistogram.WithLabelValues(path, method, statusCode).Observe(duration)
+		return err
+	}
 }
