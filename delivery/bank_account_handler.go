@@ -64,12 +64,7 @@ func GetBankAccountsHandler(c echo.Context) error {
 		bankAccountsResponse = append(bankAccountsResponse, bankAccountResponse)
 	}
 
-	response := domain.BankAccountsResponse{
-		Message: "success",
-		Data:    bankAccountsResponse,
-	}
-
-	return c.JSON(http.StatusOK, response)
+	return util.GetBankAccountsResposesHandler(c, http.StatusOK, bankAccountsResponse)
 }
 
 func UpdateBankAccountHandler(c echo.Context) error {

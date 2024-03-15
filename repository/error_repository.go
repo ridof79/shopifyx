@@ -2,8 +2,14 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/lib/pq"
+)
+
+var (
+	ErrUsernameNotFound = errors.New("username not found")
+	ErrPasswordWrong    = errors.New("wrong password")
 )
 
 func IsConstrainViolations(err error) bool {

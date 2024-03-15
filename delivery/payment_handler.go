@@ -17,7 +17,7 @@ const (
 	InsufficientStock     = "Insufficient stock"
 	FailedToMakePayment   = "failed to make payment"
 
-	PaymentAddedSuccessfully = "payment added successfully!"
+	PaymentAddedSuccessfully = "payment added successfully"
 )
 
 func CreatePaymentHandler(c echo.Context) error {

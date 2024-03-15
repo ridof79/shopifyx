@@ -18,9 +18,9 @@ const (
 	FailedToFetchProduct  = "failed to fetch product"
 	FailedToUpdateStock   = "failed to update stock"
 
-	ProductAddedSuccessfully   = "product added successfully!"
-	ProductUpdatedSuccessfully = "product updated successfully!"
-	ProductDeletedSuccessfully = "product deleted successfully!"
+	ProductAddedSuccessfully   = "product added successfully"
+	ProductUpdatedSuccessfully = "product updated successfully"
+	ProductDeletedSuccessfully = "product deleted successfully"
 	StockUpdatedSuccessfully   = "stock updated successfully"
 
 	ProductNotFound = "product not found"
@@ -121,15 +121,7 @@ func GetProductHandler(c echo.Context) error {
 
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToFetchProduct)
 	}
-
-	response := map[string]interface{}{
-		"message": "ok",
-		"data": map[string]interface{}{
-			"product": product,
-			"seller":  seller,
-		},
-	}
-	return c.JSON(http.StatusOK, response)
+	return util.GetProductResponseHandler(c, http.StatusOK, product, seller)
 }
 
 func UpdateProductStockHandler(c echo.Context) error {

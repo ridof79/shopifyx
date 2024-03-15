@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
 	"shopifyx/auth"
 	"shopifyx/config"
 	"shopifyx/domain"
@@ -42,14 +41,14 @@ func LoginUser(username, password string) (domain.User, error) {
 		&storedPassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return user, errors.New("user not found")
+			return user, ErrUsernameNotFound
 		}
 		return user, err
 	}
 
 	err = auth.VerifyPassword(storedPassword, password)
 	if err != nil {
-		return user, errors.New("wrong password")
+		return user, ErrUsernameNotFound
 	}
 
 	return user, nil

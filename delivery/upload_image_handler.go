@@ -30,35 +30,29 @@ func UploadImageHandler(c echo.Context) error {
 	var awsBucketName = os.Getenv("S3_BUCKET_NAME")
 	var awsRegion = "ap-southeast-1"
 
-	// get file from form data
 	file, err := c.FormFile("file")
 	if err != nil {
 		return util.ErrorHandler(c, http.StatusBadRequest, FileRequired)
 	}
 
-	// validate file extension
 	ext := filepath.Ext(file.Filename)
 	if ext != ".jpg" && ext != ".jpeg" {
 		return util.ErrorHandler(c, http.StatusBadRequest, FileFormatNotSupported)
 	}
 
-	// validate file size
 	if file.Size > 2<<20 {
 		return util.ErrorHandler(c, http.StatusBadRequest, FileSizeExceedsMaximumAllowedSize)
 	}
-	if file.Size < 10<<10 { // 10KB
+	if file.Size < 10<<10 {
 		return util.ErrorHandler(c, http.StatusBadRequest, FileSizeLessThanMinimumAllowedSize)
 	}
 
-	// generate random filename using UUID
 	uuidValue, _ := uuid.NewV4()
 	filename := uuidValue.String() + filepath.Ext(file.Filename)
 
-	// Open the file
 	fileContent, _ := file.Open()
 	defer fileContent.Close()
 
-	// create AWS session
 	cfg, _ := config.LoadDefaultConfig(context.TODO(),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccesKeyId, awsSecretAccessKey, "")),
 		config.WithRegion(awsRegion),
@@ -68,7 +62,6 @@ func UploadImageHandler(c echo.Context) error {
 
 	uploader := manager.NewUploader(client)
 
-	// upload file to S3
 	uploadResult, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: &awsBucketName,
 		Key:    &filename,
@@ -79,8 +72,5 @@ func UploadImageHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToUploadImage)
 	}
 
-	return c.JSON(http.StatusOK,
-		map[string]interface{}{
-			"image_url": uploadResult.Location,
-		})
+	return util.UploadImageResponseHandler(c, http.StatusOK, uploadResult.Location)
 }

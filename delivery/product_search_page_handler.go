@@ -55,13 +55,5 @@ func SearchProductHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToFetchProduct)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "ok",
-		"data":    products,
-		"meta": map[string]interface{}{
-			"limit":  limit,
-			"offset": offset,
-			"total":  total,
-		},
-	})
+	return util.SerachProductPaginationResponseHandler(c, http.StatusOK, products, limit, offset, total)
 }

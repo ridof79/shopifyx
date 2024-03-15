@@ -46,16 +46,7 @@ func RegisterUserHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToGenerateToken)
 	}
 
-	return c.JSON(
-		http.StatusCreated,
-		map[string]interface{}{
-			"message": UserRegisteredSuccessfully,
-			"data": map[string]interface{}{
-				"username":    user.Username,
-				"name":        user.Name,
-				"accessToken": token,
-			},
-		})
+	return util.UserSuccesResponseHandler(c, http.StatusCreated, UserRegisteredSuccessfully, user.Username, user.Name, token)
 }
 
 func LoginUserHandler(c echo.Context) error {
@@ -72,10 +63,10 @@ func LoginUserHandler(c echo.Context) error {
 	user, err := repository.LoginUser(user.Username, user.Password)
 
 	if err != nil {
-		if err.Error() == "user not found" {
+		if err == repository.ErrUsernameNotFound {
 			return util.ErrorHandler(c, http.StatusNotFound, UserNotFound)
 		}
-		if err.Error() == "wrong password" {
+		if err == repository.ErrUsernameNotFound {
 			return util.ErrorHandler(c, http.StatusBadRequest, UserPasswordFalse)
 		}
 		return util.ErrorHandler(c, http.StatusInternalServerError, err.Error())
@@ -86,12 +77,5 @@ func LoginUserHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToGenerateToken)
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": UserLoggedSuccessfully,
-		"data": map[string]interface{}{
-			"username":    user.Username,
-			"name":        user.Name,
-			"accessToken": token,
-		},
-	})
+	return util.UserSuccesResponseHandler(c, http.StatusOK, UserLoggedSuccessfully, user.Username, user.Name, token)
 }
