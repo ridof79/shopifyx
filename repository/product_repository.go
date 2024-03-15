@@ -28,33 +28,27 @@ func CreateProduct(product *domain.Product, userId string) error {
 	return nil
 }
 
-func GetProductById(productId string) (domain.Product, domain.SellerResponse, error) {
-	var product domain.Product
+func GetProductById(productId string) (domain.ProductResponse, domain.SellerResponse, error) {
+	var product domain.ProductResponse
 	var seller domain.SellerResponse
-	var totalSold int
-
-	sellerId, _ := GetUserIdFromProductId(productId)
-
-	query := `SELECT COALESCE(SUM(pc.quantity), 0) AS product_purchase_count FROM payments_counter pc WHERE pc.seller_id = $1`
-
-	_ = config.GetDB().QueryRow(query, sellerId).Scan(&totalSold)
-
 	var arrBankAccountId []sql.NullString
 	var arrBankNames []sql.NullString
 	var arrBankAccountNames []sql.NullString
 	var arrBankAccountNumbers []sql.NullString
 
-	query = `
+	query := `
 	SELECT 
-		p.name AS product_name,
-		p.price AS product_price,
-		p.image_url AS product_image_url,
-		p.stock AS product_stock,
-		p.condition AS product_condition,
-		p.tags AS product_tags,
-		p.is_purchaseable AS product_purchaseable,
-		COALESCE(SUM(pc.quantity), 0) AS product_purchase_count, 
+		p.id,
+		p.name,
+		p.price,
+		p.image_url,
+		p.stock,
+		p.condition,
+		p.tags,
+		p.is_purchaseable,
+		COALESCE(tps.total_sold, 0) AS total_product_sold,
 		u.name AS seller_name,
+		COALESCE(sls.total_sold, 0) AS total_seller_sold,
 		(
 			SELECT ARRAY_AGG(ba.id) 
 			FROM bank_accounts ba 
@@ -79,8 +73,10 @@ func GetProductById(productId string) (domain.Product, domain.SellerResponse, er
 		products p
 	LEFT JOIN 
 		users u ON p.user_id = u.id
-	LEFT JOIN 
-		payments_counter pc ON p.id = pc.product_id
+	LEFT JOIN
+		total_product_sold tps ON p.id = tps.product_id;
+	LEFT JOIN
+		total_users_sold sls ON u.id = sls.seller_id
 	WHERE 
 		p.id = $1
 	GROUP BY 
@@ -88,12 +84,13 @@ func GetProductById(productId string) (domain.Product, domain.SellerResponse, er
 
 	rows, err := config.GetDB().Query(query, productId)
 	if err != nil {
-		return domain.Product{}, domain.SellerResponse{}, err
+		return domain.ProductResponse{}, domain.SellerResponse{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		err := rows.Scan(
+			&product.Id,
 			&product.Name,
 			&product.Price,
 			&product.ImageURL,
@@ -103,13 +100,14 @@ func GetProductById(productId string) (domain.Product, domain.SellerResponse, er
 			&product.IsPurchaseable,
 			&product.PurchaseCount,
 			&seller.Name,
+			&seller.ProductSoldTotal,
 			pq.Array(&arrBankAccountId),
 			pq.Array(&arrBankNames),
 			pq.Array(&arrBankAccountNames),
 			pq.Array(&arrBankAccountNumbers),
 		)
 		if err != nil {
-			return domain.Product{}, domain.SellerResponse{}, err
+			return domain.ProductResponse{}, domain.SellerResponse{}, err
 		}
 	}
 
@@ -125,8 +123,6 @@ func GetProductById(productId string) (domain.Product, domain.SellerResponse, er
 	}
 
 	seller.BankAccounts = bankAccounts
-	seller.ProductSoldTotal = totalSold
-
 	return product, seller, nil
 }
 

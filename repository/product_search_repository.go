@@ -14,10 +14,11 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 	query := `
 		SELECT p.id, p.name, p.price, p.image_url, p.stock, p.condition, p.tags, p.is_purchaseable, p.created_at as date,
 		
-		COALESCE((SELECT SUM(pc.quantity) 
-		FROM payments_counter pc WHERE pc.product_id = p.id), 0) AS total_sold
-
+		ps.total_sold  --baru
 		FROM products p
+
+		JOIN total_product_sold ps ON p.id = ps.product_id --baru
+
 		WHERE 1 = 1
 	`
 	// Buat slice untuk menyimpan nilai parameter prepared statement

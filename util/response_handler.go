@@ -52,7 +52,7 @@ func UploadImageResponseHandler(c echo.Context, code int, url string) error {
 	)
 }
 
-func GetProductResponseHandler(c echo.Context, code int, product domain.Product, seller domain.SellerResponse) error {
+func GetProductResponseHandler(c echo.Context, code int, product domain.ProductResponse, seller domain.SellerResponse) error {
 	return c.JSON(code, map[string]interface{}{
 		"message": "ok",
 		"data": map[string]interface{}{

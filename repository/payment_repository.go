@@ -7,31 +7,19 @@ import (
 
 func CreatePayment(tx *sql.Tx, payment *domain.Payment, productId, buyerId, sellerId string) error {
 
-	var paymentId string
+	query := `
+	INSERT INTO payments 
+	(bank_account_id, payment_proof_image_url, buyer_id, product_id, quantity) 
+	VALUES ($1, $2, $3, $4, $5)`
 
-	query := `SELECT user_id FROM products WHERE id = $1`
-	err := tx.QueryRow(query, productId).Scan(&sellerId)
-	if err != nil {
-		return err
-	}
-
-	query = `INSERT INTO payments (bank_account_id, payment_proof_image_url, buyer_id) VALUES ($1, $2, $3) RETURNING id`
-	err = tx.QueryRow(
+	_, err := tx.Exec(
 		query,
 		payment.BankAccountId,
 		payment.PaymentProofImageURL,
-		buyerId).Scan(&paymentId)
-	if err != nil {
-		return err
-	}
-
-	query = `INSERT INTO payments_counter (product_id, quantity, payment_id, seller_id) VALUES ($1, $2, $3, $4)`
-	_, err = tx.Exec(
-		query,
+		buyerId,
 		productId,
 		payment.Quantity,
-		paymentId,
-		sellerId)
+	)
 	if err != nil {
 		return err
 	}
@@ -39,23 +27,24 @@ func CreatePayment(tx *sql.Tx, payment *domain.Payment, productId, buyerId, sell
 	return nil
 }
 
-func ProductAndBankAccountValid(tx *sql.Tx, bankAccountId, productId string) (bool, string, error) {
+func CheckStockProductAndBankAccountValid(tx *sql.Tx, bankAccountId, productId string) (bool, int, string, error) {
 	query := `
-	SELECT p.is_purchaseable, p.user_id
-	FROM products p
-	INNER JOIN bank_accounts b ON p.user_id = b.user_id
-	WHERE b.id = $1 AND p.id = $2;`
+	SELECT is_purchaseable, stock, seller_id 
+	FROM seller_bank_account 
+	WHERE bank_account_id = $1
+	AND product_id = $2;`
 
-	var hasMatching bool
+	var isPurchaseable bool
+	var stock int
 	var sellerId string
 
 	err := tx.QueryRow(
 		query,
 		bankAccountId,
-		productId).Scan(&hasMatching, &sellerId)
+		productId).Scan(&isPurchaseable, &stock, &sellerId)
 	if err != nil {
-		return false, "", err
+		return false, 0, "", err
 	}
 
-	return hasMatching, sellerId, nil
+	return isPurchaseable, stock, sellerId, err
 }

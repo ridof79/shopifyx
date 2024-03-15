@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	PaymentDetailsInvalid = "payment details invalid"
+	PaymentDetailsInvalid = "payment details invalid or product not purchaseable"
 	InsufficientStock     = "Insufficient stock"
 	FailedToMakePayment   = "failed to make payment"
 
@@ -33,24 +33,19 @@ func CreatePaymentHandler(c echo.Context) error {
 	tx, _ := config.GetDB().Begin()
 	defer tx.Rollback()
 
-	validBankId, sellerId, _ := repository.ProductAndBankAccountValid(tx, payment.BankAccountId, productId)
-	if !validBankId {
+	validBankId, productStock, sellerId, err := repository.CheckStockProductAndBankAccountValid(tx, payment.BankAccountId, productId)
+	if !validBankId || err != nil {
 		tx.Rollback()
 		return util.ErrorHandler(c, http.StatusBadRequest, PaymentDetailsInvalid)
-	}
-
-	if err := repository.CreatePayment(tx, &payment, productId, buyerId, sellerId); err != nil {
-		tx.Rollback()
-	}
-
-	productStock, err := repository.GetProductStockTx(tx, productId)
-	if err != nil {
-		tx.Rollback()
 	}
 
 	if productStock < payment.Quantity {
 		tx.Rollback()
 		return util.ErrorHandler(c, http.StatusBadRequest, InsufficientStock)
+	}
+
+	if err := repository.CreatePayment(tx, &payment, productId, buyerId, sellerId); err != nil {
+		tx.Rollback()
 	}
 
 	if err := repository.UpdateProductStockTx(tx, productId, productStock-payment.Quantity); err != nil {
