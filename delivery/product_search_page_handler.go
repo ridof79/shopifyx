@@ -52,11 +52,7 @@ func SearchProductHandler(c echo.Context) error {
 
 	products, total, err := repository.SearchProduct(searchPagination, userId)
 	if err != nil {
-
-		return c.JSON(http.StatusInternalServerError,
-			map[string]string{
-				"message": err.Error(),
-			})
+		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToFetchProduct)
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{

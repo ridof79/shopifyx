@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type JwtCustomClaims struct {
@@ -63,4 +64,18 @@ func ConfigJWT() echojwt.Config {
 			return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized1")
 		},
 	}
+}
+
+func HashPassword(password string) (string, error) {
+	cost, _ := strconv.Atoi(os.Getenv("BCRYPT_SALT"))
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
+}
+
+func VerifyPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }

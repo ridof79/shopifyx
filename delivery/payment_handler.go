@@ -7,9 +7,18 @@ import (
 	"shopifyx/config"
 	"shopifyx/domain"
 	"shopifyx/repository"
+	"shopifyx/util"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	PaymentDetailsInvalid = "payment details invalid"
+	InsufficientStock     = "Insufficient stock"
+	FailedToMakePayment   = "failed to make payment"
+
+	PaymentAddedSuccessfully = "payment added successfully!"
 )
 
 func CreatePaymentHandler(c echo.Context) error {
@@ -21,82 +30,39 @@ func CreatePaymentHandler(c echo.Context) error {
 	productId := c.Param("productId")
 
 	if err := json.NewDecoder(c.Request().Body).Decode(&payment); err != nil {
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{
-				"error": err.Error(),
-			},
-		)
+		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
 	}
 
 	tx, err := config.GetDB().Begin()
-	if err != nil {
-		return c.JSON(
-			http.StatusInternalServerError,
-			map[string]interface{}{
-				"message": err.Error(),
-			})
-	}
 	defer tx.Rollback()
 
-	// bank account id user == product id user
-	// get user id dari product id
 	validBankId, sellerId, _ := repository.ProductAndBankAccountValid(tx, payment.BankAccountId, productId)
 	if !validBankId {
 		tx.Rollback()
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{
-				"message": "payment details invalid",
-			},
-		)
+		return util.ErrorHandler(c, http.StatusBadRequest, PaymentDetailsInvalid)
 	}
 
 	if err := repository.CreatePayment(tx, &payment, productId, buyerId, sellerId); err != nil {
 		tx.Rollback()
-		return c.JSON(
-			http.StatusInternalServerError,
-			map[string]interface{}{
-				"message": err.Error(),
-			})
 	}
 
 	productStock, err := repository.GetProductStockTx(tx, productId)
 	if err != nil {
 		tx.Rollback()
-		return c.JSON(
-			http.StatusInternalServerError,
-			map[string]interface{}{
-				"message": err.Error(),
-			})
 	}
 
 	if productStock < payment.Quantity {
 		tx.Rollback()
-		return c.JSON(
-			http.StatusBadRequest,
-			map[string]string{
-				"message": "Insufficient stock",
-			},
-		)
+		return util.ErrorHandler(c, http.StatusBadRequest, InsufficientStock)
 	}
 
 	if err := repository.UpdateProductStockTx(tx, productId, productStock-payment.Quantity); err != nil {
 		tx.Rollback()
-		return err
 	}
 
 	if err := tx.Commit(); err != nil {
-		return c.JSON(
-			http.StatusInternalServerError,
-			map[string]interface{}{
-				"message": err.Error(),
-			})
+		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToMakePayment)
 	}
 
-	return c.JSON(
-		http.StatusCreated,
-		map[string]interface{}{
-			"message": "Payment added successfully!",
-		})
+	return util.ResponseHandler(c, http.StatusCreated, PaymentAddedSuccessfully)
 }

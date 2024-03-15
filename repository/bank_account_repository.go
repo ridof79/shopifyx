@@ -8,9 +8,13 @@ import (
 )
 
 func AddBankAccount(bankAccount *domain.BankAccount, userId string) error {
+	query := `INSERT INTO bank_accounts (bank_name, bank_account_name, bank_account_number, user_id) VALUES($1, $2, $3, $4)`
 	_, err := config.GetDB().Exec(
-		`INSERT INTO bank_accounts (bank_name, bank_account_name, bank_account_number, user_id) VALUES($1, $2, $3, $4)`,
-		bankAccount.BankName, bankAccount.BankAccountName, bankAccount.BankAccountNumber, userId,
+		query,
+		bankAccount.BankName,
+		bankAccount.BankAccountName,
+		bankAccount.BankAccountNumber,
+		userId,
 	)
 	if err != nil {
 		return err
@@ -19,8 +23,9 @@ func AddBankAccount(bankAccount *domain.BankAccount, userId string) error {
 }
 
 func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
+	query := `SELECT id, bank_name, bank_account_name, bank_account_number FROM bank_accounts WHERE user_id = $1`
 	rows, err := config.GetDB().Query(
-		`SELECT id, bank_name, bank_account_name, bank_account_number FROM bank_accounts WHERE user_id = $1`,
+		query,
 		userId,
 	)
 	if err != nil {
@@ -31,7 +36,11 @@ func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
 	var bankAccounts []domain.BankAccount
 	for rows.Next() {
 		var bankAccount domain.BankAccount
-		err := rows.Scan(&bankAccount.Id, &bankAccount.BankName, &bankAccount.BankAccountName, &bankAccount.BankAccountNumber)
+		err := rows.Scan(
+			&bankAccount.Id,
+			&bankAccount.BankName,
+			&bankAccount.BankAccountName,
+			&bankAccount.BankAccountNumber)
 		if err != nil {
 			return nil, err
 		}
@@ -56,8 +65,13 @@ func UpdateBankAccount(bankAccount *domain.BankAccount, bankAccountId, userId st
 		END AS result_code;`
 
 	var resultCode int
-	err := config.GetDB().QueryRow(query,
-		bankAccount.BankName, bankAccount.BankAccountName, bankAccount.BankAccountNumber, bankAccountId, userId,
+	err := config.GetDB().QueryRow(
+		query,
+		bankAccount.BankName,
+		bankAccount.BankAccountName,
+		bankAccount.BankAccountNumber,
+		bankAccountId,
+		userId,
 	).Scan(&resultCode)
 
 	if err != nil {
@@ -67,8 +81,9 @@ func UpdateBankAccount(bankAccount *domain.BankAccount, bankAccountId, userId st
 }
 
 func DeleteBankAccount(bankAccountId, userId string) error {
+	query := `DELETE FROM bank_accounts WHERE id = $1 AND user_id = $2`
 	result, err := config.GetDB().Exec(
-		`DELETE FROM bank_accounts WHERE id = $1 AND user_id = $2`,
+		query,
 		bankAccountId, userId,
 	)
 	if err != nil {

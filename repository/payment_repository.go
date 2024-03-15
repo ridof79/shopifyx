@@ -9,17 +9,29 @@ func CreatePayment(tx *sql.Tx, payment *domain.Payment, productId, buyerId, sell
 
 	var paymentId string
 
-	err := tx.QueryRow("SELECT user_id FROM products WHERE id = $1", productId).Scan(&sellerId)
+	query := `SELECT user_id FROM products WHERE id = $1`
+	err := tx.QueryRow(query, productId).Scan(&sellerId)
 	if err != nil {
 		return err
 	}
 
-	err = tx.QueryRow("INSERT INTO payments (bank_account_id, payment_proof_image_url, buyer_id) VALUES ($1, $2, $3) RETURNING id", payment.BankAccountId, payment.PaymentProofImageURL, buyerId).Scan(&paymentId)
+	query = `INSERT INTO payments (bank_account_id, payment_proof_image_url, buyer_id) VALUES ($1, $2, $3) RETURNING id`
+	err = tx.QueryRow(
+		query,
+		payment.BankAccountId,
+		payment.PaymentProofImageURL,
+		buyerId).Scan(&paymentId)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO payments_counter (product_id, quantity, payment_id, seller_id) VALUES ($1, $2, $3, $4)", productId, payment.Quantity, paymentId, sellerId)
+	query = `INSERT INTO payments_counter (product_id, quantity, payment_id, seller_id) VALUES ($1, $2, $3, $4)`
+	_, err = tx.Exec(
+		query,
+		productId,
+		payment.Quantity,
+		paymentId,
+		sellerId)
 	if err != nil {
 		return err
 	}
@@ -37,7 +49,10 @@ func ProductAndBankAccountValid(tx *sql.Tx, bankAccountId, productId string) (bo
 	var hasMatching bool
 	var sellerId string
 
-	err := tx.QueryRow(query, bankAccountId, productId).Scan(&hasMatching, &sellerId)
+	err := tx.QueryRow(
+		query,
+		bankAccountId,
+		productId).Scan(&hasMatching, &sellerId)
 	if err != nil {
 		return false, "", err
 	}

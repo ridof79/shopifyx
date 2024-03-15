@@ -10,10 +10,18 @@ import (
 )
 
 func CreateProduct(product *domain.Product, userId string) error {
+	query := `INSERT INTO products (name, price, image_url, stock, condition, tags, is_purchaseable, user_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
 	_, err := config.GetDB().Exec(
-		`INSERT INTO products (name, price, image_url, stock, condition, tags, is_purchaseable, user_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-		product.Name, product.Price, product.ImageURL, product.Stock, product.Condition, pq.Array(product.Tags), product.IsPurchaseable, userId,
+		query,
+		product.Name,
+		product.Price,
+		product.ImageURL,
+		product.Stock,
+		product.Condition,
+		pq.Array(product.Tags),
+		product.IsPurchaseable, userId,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -26,14 +34,17 @@ func GetProductById(productId string) (domain.Product, domain.SellerResponse, er
 	var totalSold int
 
 	sellerId, _ := GetUserIdFromProductId(productId)
-	_ = config.GetDB().QueryRow("SELECT COALESCE(SUM(pc.quantity), 0) AS product_purchase_count FROM payments_counter pc WHERE pc.seller_id = $1", sellerId).Scan(&totalSold)
+
+	query := `SELECT COALESCE(SUM(pc.quantity), 0) AS product_purchase_count FROM payments_counter pc WHERE pc.seller_id = $1`
+
+	_ = config.GetDB().QueryRow(query, sellerId).Scan(&totalSold)
 
 	var arrBankAccountId []sql.NullString
 	var arrBankNames []sql.NullString
 	var arrBankAccountNames []sql.NullString
 	var arrBankAccountNumbers []sql.NullString
 
-	query := `
+	query = `
 	SELECT 
 		p.name AS product_name,
 		p.price AS product_price,
