@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 	"shopifyx/auth"
-	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/domain"
 )
 
@@ -17,7 +17,7 @@ func RegisterUser(username, name, password string) (domain.User, error) {
 
 	query := `INSERT INTO users (username, name, password) VALUES ($1, $2, $3) 
 			  RETURNING id, name, username`
-	err = config.GetDB().QueryRow(
+	err = db.GetDB().QueryRow(
 		query,
 		username,
 		name,
@@ -33,7 +33,7 @@ func LoginUser(username, password string) (domain.UserLogin, error) {
 	var user domain.UserLogin
 
 	query := `SELECT id, name, username, password FROM users WHERE username = $1`
-	err := config.GetDB().QueryRow(query,
+	err := db.GetDB().QueryRow(query,
 		username).Scan(
 		&user.Id,
 		&user.Name,

@@ -2,7 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/domain"
 	"shopifyx/util"
 
@@ -73,7 +73,7 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 	// Hitung jumlah total produk tanpa paging
 	totalQuery := "SELECT COUNT(*) FROM (" + query + ") AS total"
 	var total int
-	err := config.GetDB().QueryRow(totalQuery, args...).Scan(&total)
+	err := db.GetDB().QueryRow(totalQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -83,7 +83,7 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 	args = append(args, searchPagination.Limit, searchPagination.Offset)
 
 	// Eksekusi query
-	rows, err := config.GetDB().Query(query, args...)
+	rows, err := db.GetDB().Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

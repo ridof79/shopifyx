@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 
-	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/domain"
 
 	"github.com/lib/pq"
@@ -11,7 +11,7 @@ import (
 
 func CreateProduct(product *domain.Product, userId string) error {
 	query := `INSERT INTO products (name, price, image_url, stock, condition, tags, is_purchaseable, user_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
-	_, err := config.GetDB().Exec(
+	_, err := db.GetDB().Exec(
 		query,
 		product.Name,
 		product.Price,
@@ -82,7 +82,7 @@ func GetProductById(productId string) (domain.ProductResponse, domain.SellerResp
 	GROUP BY 
 		p.id, p.name, u.name, u.id, sls.total_sold, tps.total_sold;`
 
-	rows, err := config.GetDB().Query(query, productId)
+	rows, err := db.GetDB().Query(query, productId)
 	if err != nil {
 		return domain.ProductResponse{}, domain.SellerResponse{}, err
 	}
@@ -143,7 +143,7 @@ func UpdateProduct(product *domain.Product, productId, userId string) (int, erro
 	`
 
 	var resultCode int
-	err := config.GetDB().QueryRow(query,
+	err := db.GetDB().QueryRow(query,
 		product.Name, product.Price, product.ImageURL, product.Condition, pq.Array(product.Tags), product.IsPurchaseable, productId, userId,
 	).Scan(&resultCode)
 
@@ -168,7 +168,7 @@ func DeleteProductById(productId, userId string) (int, error) {
 		END AS result_code;`
 
 	var resultCode int
-	err := config.GetDB().QueryRow(query, productId, userId).Scan(&resultCode)
+	err := db.GetDB().QueryRow(query, productId, userId).Scan(&resultCode)
 	if err != nil {
 		return 0, err
 	}
@@ -198,7 +198,7 @@ func UpdateProductStockTx(tx *sql.Tx, productId string, newStock int) error {
 
 func GetUserIdFromProductId(productId string) (string, error) {
 	var userId string
-	err := config.GetDB().QueryRow("SELECT user_id FROM products WHERE id = $1", productId).Scan(&userId)
+	err := db.GetDB().QueryRow("SELECT user_id FROM products WHERE id = $1", productId).Scan(&userId)
 	if err != nil {
 		return "", err
 	}
@@ -206,7 +206,7 @@ func GetUserIdFromProductId(productId string) (string, error) {
 }
 
 func UpdateProductStock(productId string, newStock int) error {
-	_, err := config.GetDB().Exec(
+	_, err := db.GetDB().Exec(
 		`UPDATE products SET stock = $1 WHERE id = $2`,
 		newStock, productId,
 	)

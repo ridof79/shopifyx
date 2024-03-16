@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"shopifyx/auth"
-	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/domain"
 	"shopifyx/repository"
 	"shopifyx/util"
@@ -30,7 +30,7 @@ func CreatePaymentHandler(c echo.Context) error {
 		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
 	}
 
-	tx, _ := config.GetDB().Begin()
+	tx, _ := db.GetDB().Begin()
 	defer tx.Rollback()
 
 	validBankId, productStock, sellerId, err := repository.CheckStockProductAndBankAccountValid(tx, payment.BankAccountId, productId)

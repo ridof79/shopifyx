@@ -1,44 +1,51 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"shopifyx/auth"
 	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/delivery"
 
 	middle "shopifyx/middleware"
 
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo-contrib/echoprometheus"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 
+	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
 	// Inisialisasi koneksi database
-	config.InitDB()
-	defer config.CloseDB()
+	config, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal("Cannot load config:", err)
+	}
+
+	fmt.Println(config)
+
+	db.InitDB(config)
+	defer db.CloseDB()
+
+	err = db.GetDB().Ping()
+	if err != nil {
+		fmt.Println("Failed to ping database:", err)
+		return
+	}
+
+	fmt.Println("Database connection OK")
 
 	// Inisialisasi Echo framework
 	e := echo.New()
-
+	// Validator
 	e.Validator = middle.Validator
-
-	// prometheus
-	e.Use(echoprometheus.NewMiddleware("myapp"))   // adds middleware to gather metrics
-	e.GET("/metrics", echoprometheus.NewHandler()) // adds route to serve gathered metrics
-
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	//	e.User(Prome)
 
 	// Whitelist routes
 	e.POST("/v1/user/register", delivery.RegisterUserHandler)

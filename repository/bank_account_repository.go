@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"shopifyx/config"
+	"shopifyx/db"
 	"shopifyx/domain"
 
 	"github.com/lib/pq"
@@ -9,7 +9,7 @@ import (
 
 func AddBankAccount(bankAccount *domain.BankAccount, userId string) error {
 	query := `INSERT INTO bank_accounts (bank_name, bank_account_name, bank_account_number, user_id) VALUES($1, $2, $3, $4)`
-	_, err := config.GetDB().Exec(
+	_, err := db.GetDB().Exec(
 		query,
 		bankAccount.BankName,
 		bankAccount.BankAccountName,
@@ -23,8 +23,9 @@ func AddBankAccount(bankAccount *domain.BankAccount, userId string) error {
 }
 
 func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
+
 	query := `SELECT id, bank_name, bank_account_name, bank_account_number FROM bank_accounts WHERE user_id = $1`
-	rows, err := config.GetDB().Query(
+	rows, err := db.GetDB().Query(
 		query,
 		userId,
 	)
@@ -50,6 +51,7 @@ func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
 }
 
 func UpdateBankAccount(bankAccount *domain.BankAccountUpdate, bankAccountId, userId string) (int, error) {
+
 	query := `
 	WITH updated AS (
 		UPDATE bank_accounts
@@ -65,7 +67,7 @@ func UpdateBankAccount(bankAccount *domain.BankAccountUpdate, bankAccountId, use
 		END AS result_code;`
 
 	var resultCode int
-	err := config.GetDB().QueryRow(
+	err := db.GetDB().QueryRow(
 		query,
 		bankAccount.BankName,
 		bankAccount.BankAccountName,
@@ -81,8 +83,9 @@ func UpdateBankAccount(bankAccount *domain.BankAccountUpdate, bankAccountId, use
 }
 
 func DeleteBankAccount(bankAccountId, userId string) error {
+
 	query := `DELETE FROM bank_accounts WHERE id = $1 AND user_id = $2`
-	result, err := config.GetDB().Exec(
+	result, err := db.GetDB().Exec(
 		query,
 		bankAccountId, userId,
 	)
