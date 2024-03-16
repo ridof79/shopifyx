@@ -1,7 +1,6 @@
 package delivery
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"shopifyx/auth"
@@ -26,12 +25,12 @@ const (
 func RegisterUserHandler(c echo.Context) error {
 	var user domain.User
 
-	if err := json.NewDecoder(c.Request().Body).Decode(&user); err != nil {
+	if err := c.Bind(&user); err != nil {
 		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
 	}
 
-	if (len(user.Username) < 5 || len(user.Username) > 15) || (len(user.Password) < 5 || len(user.Password) > 15) {
-		return util.ErrorHandler(c, http.StatusBadRequest, InvalidUsernameOrPasswordLength)
+	if err := c.Validate(user); err != nil {
+		return util.ErrorHandler(c, http.StatusBadRequest, err.Error())
 	}
 
 	user, err := repository.RegisterUser(user.Username, user.Name, user.Password)
@@ -41,7 +40,12 @@ func RegisterUserHandler(c echo.Context) error {
 		}
 	}
 
-	token, err := auth.GenerateAccessToken(&user)
+	var userLogin domain.UserLogin
+	userLogin.Id = user.Id
+	userLogin.Username = user.Username
+	userLogin.Name = user.Name
+
+	token, err := auth.GenerateAccessToken(&userLogin)
 	if err != nil {
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToGenerateToken)
 	}
@@ -50,14 +54,14 @@ func RegisterUserHandler(c echo.Context) error {
 }
 
 func LoginUserHandler(c echo.Context) error {
-	var user domain.User
+	var user domain.UserLogin
 
-	if err := json.NewDecoder(c.Request().Body).Decode(&user); err != nil {
+	if err := c.Bind(&user); err != nil {
 		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
 	}
 
-	if (len(user.Username) < 5 || len(user.Username) > 15) || (len(user.Password) < 5 || len(user.Password) > 15) {
-		return util.ErrorHandler(c, http.StatusBadRequest, InvalidUsernameOrPasswordLength)
+	if err := c.Validate(user); err != nil {
+		return util.ErrorHandler(c, http.StatusBadRequest, err.Error())
 	}
 
 	user, err := repository.LoginUser(user.Username, user.Password)
@@ -66,10 +70,10 @@ func LoginUserHandler(c echo.Context) error {
 		if err == repository.ErrUsernameNotFound {
 			return util.ErrorHandler(c, http.StatusNotFound, UserNotFound)
 		}
-		if err == repository.ErrUsernameNotFound {
+		if err == repository.ErrPasswordWrong {
 			return util.ErrorHandler(c, http.StatusBadRequest, UserPasswordFalse)
 		}
-		return util.ErrorHandler(c, http.StatusInternalServerError, err.Error())
+		return util.ErrorHandler(c, http.StatusInternalServerError, InvalidRequestBody)
 	}
 
 	token, err := auth.GenerateAccessToken(&user)

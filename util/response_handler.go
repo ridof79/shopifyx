@@ -47,7 +47,7 @@ func SerachProductPaginationResponseHandler(c echo.Context, code int, products [
 
 func UploadImageResponseHandler(c echo.Context, code int, url string) error {
 	return c.JSON(code, map[string]interface{}{
-		"image_url": url,
+		"imageUrl": url,
 	},
 	)
 }

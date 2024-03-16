@@ -20,7 +20,7 @@ type JwtCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateAccessToken(user *domain.User) (string, error) {
+func GenerateAccessToken(user *domain.UserLogin) (string, error) {
 
 	var jwtSecretKey = os.Getenv("JWT_SECRET")
 	var jwtExpiredMinutes = os.Getenv("JWT_EXPIRED_MINUTES")
@@ -31,8 +31,7 @@ func GenerateAccessToken(user *domain.User) (string, error) {
 	}
 
 	claims := &JwtCustomClaims{
-		Id:   user.Id,
-		Name: user.Name,
+		Id: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(tokenExpirationTime) * time.Minute)),
 		},

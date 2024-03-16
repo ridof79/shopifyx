@@ -115,7 +115,7 @@ func GetProductById(productId string) (domain.ProductResponse, domain.SellerResp
 
 	for i := range arrBankAccountId {
 		bankAccounts = append(bankAccounts, domain.BankAccounts{
-			Id:                arrBankAccountId[i].String,
+			BankAccountId:     arrBankAccountId[i].String,
 			BankName:          arrBankNames[i].String,
 			BankAccountName:   arrBankAccountNames[i].String,
 			BankAccountNumber: arrBankAccountNumbers[i].String,

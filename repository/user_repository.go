@@ -28,16 +28,16 @@ func RegisterUser(username, name, password string) (domain.User, error) {
 	return user, nil
 }
 
-func LoginUser(username, password string) (domain.User, error) {
+func LoginUser(username, password string) (domain.UserLogin, error) {
 	var storedPassword string
-	var user domain.User
+	var user domain.UserLogin
 
-	query := `SELECT id, username, name, password FROM users WHERE username = $1`
+	query := `SELECT id, name, username, password FROM users WHERE username = $1`
 	err := config.GetDB().QueryRow(query,
 		username).Scan(
 		&user.Id,
-		&user.Username,
 		&user.Name,
+		&user.Username,
 		&storedPassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -48,7 +48,7 @@ func LoginUser(username, password string) (domain.User, error) {
 
 	err = auth.VerifyPassword(storedPassword, password)
 	if err != nil {
-		return user, ErrUsernameNotFound
+		return user, ErrPasswordWrong
 	}
 
 	return user, nil

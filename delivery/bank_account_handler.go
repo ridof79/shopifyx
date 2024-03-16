@@ -56,7 +56,7 @@ func GetBankAccountsHandler(c echo.Context) error {
 	var bankAccountsResponse []domain.BankAccounts
 	for _, acc := range bankAccounts {
 		bankAccountResponse := domain.BankAccounts{
-			Id:                acc.Id,
+			BankAccountId:     acc.Id,
 			BankName:          acc.BankName,
 			BankAccountName:   acc.BankAccountName,
 			BankAccountNumber: acc.BankAccountNumber,
@@ -71,11 +71,18 @@ func UpdateBankAccountHandler(c echo.Context) error {
 	userId := auth.GetUserIdFromToken(c)
 
 	bankAccountId := c.Param("bankAccountId")
+	if len(bankAccountId) != 36 {
+		return util.ErrorHandler(c, http.StatusNotFound, BankAccountNotFound)
+	}
 
-	var updatedBankAccount domain.BankAccount
+	var updatedBankAccount domain.BankAccountUpdate
 
-	if err := json.NewDecoder(c.Request().Body).Decode(&updatedBankAccount); err != nil {
+	if err := c.Bind(&updatedBankAccount); err != nil {
 		return util.ErrorHandler(c, http.StatusBadRequest, InvalidRequestBody)
+	}
+
+	if err := c.Validate(updatedBankAccount); err != nil {
+		return util.ErrorHandler(c, http.StatusBadRequest, err.Error())
 	}
 
 	result, err := repository.UpdateBankAccount(&updatedBankAccount, bankAccountId, userId)

@@ -1,13 +1,12 @@
 package main
 
 import (
+	"log"
 	"shopifyx/auth"
 	"shopifyx/config"
 	"shopifyx/delivery"
 
-	"log"
-
-	//prometheus "shopifyx/middleware"
+	middle "shopifyx/middleware"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -29,6 +28,8 @@ func main() {
 
 	// Inisialisasi Echo framework
 	e := echo.New()
+
+	e.Validator = middle.Validator
 
 	// prometheus
 	e.Use(echoprometheus.NewMiddleware("myapp"))   // adds middleware to gather metrics

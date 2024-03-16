@@ -49,7 +49,7 @@ func GetBankAccounts(userId string) ([]domain.BankAccount, error) {
 	return bankAccounts, nil
 }
 
-func UpdateBankAccount(bankAccount *domain.BankAccount, bankAccountId, userId string) (int, error) {
+func UpdateBankAccount(bankAccount *domain.BankAccountUpdate, bankAccountId, userId string) (int, error) {
 	query := `
 	WITH updated AS (
 		UPDATE bank_accounts
