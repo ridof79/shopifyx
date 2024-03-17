@@ -28,7 +28,7 @@ func UploadImageHandler(c echo.Context) error {
 	var awsAccesKeyId = os.Getenv("S3_ID")
 	var awsSecretAccessKey = os.Getenv("S3_SECRET_KEY")
 	var awsBucketName = os.Getenv("S3_BUCKET_NAME")
-	var awsRegion = "ap-southeast-1"
+	var awsRegion = "ap-southeast-3"
 
 	file, err := c.FormFile("file")
 	if err != nil {
