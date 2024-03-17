@@ -18,5 +18,4 @@ ENV S3_BUCKET_NAME=shopifyx
 
 EXPOSE 8000
 
-# Eksekusi binary ketika container dijalankan
 CMD ["./main"]
