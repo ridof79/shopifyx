@@ -11,12 +11,17 @@ import (
 )
 
 var db *sql.DB
+var c config.Config
 
 func GetDB() *sql.DB {
-	return db
+	return InitDB(c)
 }
 
-func InitDB(config config.Config) {
+func SetDBConfig(config config.Config) {
+	c = config
+}
+
+func InitDB(config config.Config) *sql.DB {
 	var conn string
 	if config.ENV != "production" {
 		conn = fmt.Sprintf(
@@ -35,9 +40,6 @@ func InitDB(config config.Config) {
 			config.DbPort,
 			config.DbName)
 	}
-
-	fmt.Println(conn)
-
 	db, err := sql.Open("postgres", conn)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -47,8 +49,7 @@ func InitDB(config config.Config) {
 	db.SetMaxOpenConns(25)
 	db.SetConnMaxLifetime(60 * time.Minute)
 	db.SetConnMaxIdleTime(10 * time.Minute)
-
-	db.Ping()
+	return db
 }
 
 func CloseDB() {

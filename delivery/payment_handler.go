@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"shopifyx/auth"
 	"shopifyx/db"
@@ -22,6 +23,7 @@ const (
 
 func CreatePaymentHandler(c echo.Context) error {
 	buyerId := auth.GetUserIdFromToken(c)
+	log.Println("buyerId", buyerId)
 
 	var payment domain.Payment
 	productId := c.Param("productId")
@@ -35,24 +37,29 @@ func CreatePaymentHandler(c echo.Context) error {
 
 	validBankId, productStock, sellerId, err := repository.CheckStockProductAndBankAccountValid(tx, payment.BankAccountId, productId)
 	if !validBankId || err != nil {
+		log.Println("Failed to commit transaction:", err)
 		tx.Rollback()
 		return util.ErrorHandler(c, http.StatusBadRequest, PaymentDetailsInvalid)
 	}
 
 	if productStock < payment.Quantity {
+		log.Println("Failed to commit transaction:", err)
 		tx.Rollback()
 		return util.ErrorHandler(c, http.StatusBadRequest, InsufficientStock)
 	}
 
 	if err := repository.CreatePayment(tx, &payment, productId, buyerId, sellerId); err != nil {
+		log.Println("Failed to commit transaction:", err)
 		tx.Rollback()
 	}
 
 	if err := repository.UpdateProductStockTx(tx, productId, productStock-payment.Quantity); err != nil {
+		log.Println("Failed to commit transaction:", err)
 		tx.Rollback()
 	}
 
 	if err := tx.Commit(); err != nil {
+		log.Println("Failed to commit transaction:", err)
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToMakePayment)
 	}
 

@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"shopifyx/auth"
 	"shopifyx/domain"
@@ -28,6 +29,8 @@ const (
 
 func CreateProductHandler(c echo.Context) error {
 	userId := auth.GetUserIdFromToken(c)
+
+	log.Println("userId", userId)
 
 	var product domain.Product
 

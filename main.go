@@ -23,24 +23,25 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Inisialisasi koneksi database
+	// Inisialisasi konfigurasi
 	config, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal("Cannot load config:", err)
+		fmt.Println("Failed to load config:", err)
 	}
-
-	fmt.Println(config)
-
-	db.InitDB(config)
+	// Inisialisasi koneksi database
+	db.SetDBConfig(config)
 	defer db.CloseDB()
 
-	err = db.GetDB().Ping()
+	auth.SetAuthConfig(config)
+
+	db.GetDB().Ping()
 	if err != nil {
 		fmt.Println("Failed to ping database:", err)
-		return
 	}
-
 	fmt.Println("Database connection OK")
+
+	// Set config for auth
+	//auth.SetDBConfig(config)
 
 	// Inisialisasi Echo framework
 	e := echo.New()

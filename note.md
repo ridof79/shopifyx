@@ -45,4 +45,4 @@
 	"userId": "user_id" 
 }
 
-migrate -database "postgres://postgres:postgres@localhost:5433/shopifyx_data?sslmode=disable" -path db/migrations up
+migrate -database "postgres://postgres:admin@localhost:5433/shopifyx_data?sslmode=disable" -path db/migrations up

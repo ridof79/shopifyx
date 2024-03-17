@@ -2,7 +2,7 @@ package auth
 
 import (
 	"net/http"
-	"os"
+	"shopifyx/config"
 	"shopifyx/domain"
 	"strconv"
 	"strings"
@@ -20,10 +20,16 @@ type JwtCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+var conf config.Config
+
+func SetAuthConfig(config config.Config) {
+	conf = config
+}
+
 func GenerateAccessToken(user *domain.UserLogin) (string, error) {
 
-	var jwtSecretKey = os.Getenv("JWT_SECRET")
-	var jwtExpiredMinutes = os.Getenv("JWT_EXPIRED_MINUTES")
+	var jwtSecretKey = conf.JWTSecret
+	var jwtExpiredMinutes = "5"
 
 	var tokenExpirationTime, err = strconv.Atoi(jwtExpiredMinutes)
 	if err != nil {
@@ -49,7 +55,7 @@ func GenerateAccessToken(user *domain.UserLogin) (string, error) {
 
 func ConfigJWT() echojwt.Config {
 	return echojwt.Config{
-		SigningKey: []byte(os.Getenv("JWT_SECRET")),
+		SigningKey: []byte(conf.JWTSecret),
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(JwtCustomClaims)
 		},
@@ -66,16 +72,14 @@ func GetUserIdFromHeader(c echo.Context) string {
 	authHeader := c.Request().Header.Get("Authorization")
 	tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 	token, _ := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return os.Getenv("JWT_SECRET"), nil
+		return conf.JWTSecret, nil
 	})
 	claims, _ := token.Claims.(*JwtCustomClaims)
 	return claims.Id
 }
 
 func HashPassword(password string) (string, error) {
-	cost, _ := strconv.Atoi(os.Getenv("BCRYPT_SALT"))
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), conf.BcryptSalt)
 	if err != nil {
 		return "", err
 	}

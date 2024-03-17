@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -19,6 +20,8 @@ func SearchProductHandler(c echo.Context) error {
 	if userOnly {
 		userId = auth.GetUserIdFromHeader(c)
 	}
+
+	log.Println("userId", userId)
 
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	offset, _ := strconv.Atoi(c.QueryParam("offset"))
@@ -53,6 +56,7 @@ func SearchProductHandler(c echo.Context) error {
 
 	products, total, err := repository.SearchProduct(searchPagination, userId)
 	if err != nil {
+		log.Println("Failed to fetch product:", err)
 		return util.ErrorHandler(c, http.StatusInternalServerError, FailedToFetchProduct)
 	}
 

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
 	"shopifyx/db"
 	"shopifyx/domain"
@@ -15,9 +16,10 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 		SELECT p.id, p.name, p.price, p.image_url, p.stock, p.condition, p.tags, p.is_purchaseable, p.created_at as date,
 		
 		ps.total_sold  --baru
+		
 		FROM products p
 
-		JOIN total_product_sold ps ON p.id = ps.product_id --baru
+		LEFT JOIN total_product_sold ps ON p.id = ps.product_id
 
 		WHERE 1 = 1
 	`
@@ -92,13 +94,16 @@ func SearchProduct(searchPagination *util.SearchPagination, userId string) ([]do
 	var products []domain.ProductResponse
 	for rows.Next() {
 		var product domain.ProductResponse
+		var purchaseCount sql.NullInt64
 		var date string
 
 		err := rows.Scan(&product.Id, &product.Name, &product.Price, &product.ImageURL, &product.Stock, &product.Condition, pq.Array(&product.Tags),
-			&product.IsPurchaseable, &date, &product.PurchaseCount)
+			&product.IsPurchaseable, &date, &purchaseCount)
 		if err != nil {
 			return nil, 0, err
 		}
+
+		product.PurchaseCount = int(purchaseCount.Int64)
 
 		products = append(products, product)
 	}
